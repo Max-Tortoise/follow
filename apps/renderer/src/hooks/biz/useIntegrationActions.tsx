@@ -24,6 +24,49 @@ import type { FlatEntryModel } from "~/store/entry"
 import { getFeedById, useFeedById } from "~/store/feed"
 import { useInboxById } from "~/store/inbox"
 
+// Refactored saveToEagle function
+export const saveToEagle = async (input: {
+  url: string
+  mediaUrls: string[]
+  category: string
+  feedTitle: string
+  entriesTitle: string
+  description: string
+  publishedAt: string
+}) => {
+  try {
+    const res = await fetch("http://localhost:41596/api/item/addFromURLs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items: input.mediaUrls?.map((media) => ({
+          url: media,
+          website: input.url,
+          name: input.entriesTitle,
+          annotation: input.description,
+          headers: {
+            referer: input.url,
+          },
+          modificationTime: convertToUnixTimestamp(input.publishedAt),
+        })),
+        category: input.category,
+        feedTitle: input.feedTitle,
+        entriesTitle: input.entriesTitle,
+      }),
+    })
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
+// Function to convert ISO date to Unix timestamp in milliseconds
+const convertToUnixTimestamp = (isoDate) => {
+  return new Date(isoDate).getTime()
+}
+
 export const useIntegrationActions = ({
   view,
   entry,
@@ -100,7 +143,8 @@ export const useIntegrationActions = ({
 
   const checkEagle = useQuery({
     queryKey: ["check-eagle"],
-    enabled: ELECTRON && enableEagle && !!entry?.entries.url && view !== undefined,
+    // enabled: ELECTRON && enableEagle && !!entry?.entries.url && view !== undefined,
+    enabled: enableEagle && !!entry?.entries.url && view !== undefined,
     queryFn: async () => {
       try {
         await ofetch("http://localhost:41595")
@@ -162,9 +206,14 @@ export const useIntegrationActions = ({
             type: "eagle",
             event: "save",
           })
-          const response = await tipcClient?.saveToEagle({
+          const response = await saveToEagle({
             url: populatedEntry.entries.url,
             mediaUrls: populatedEntry.entries.media.map((m) => m.url),
+            category: populatedEntry.subscriptions.category,
+            feedTitle: populatedEntry.feeds?.title || "",
+            entriesTitle: populatedEntry.entries.title || "",
+            description: populatedEntry.entries.description || "",
+            publishedAt: populatedEntry.entries.publishedAt || "",
           })
 
           if (response?.status === "success") {
