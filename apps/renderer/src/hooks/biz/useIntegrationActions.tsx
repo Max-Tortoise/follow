@@ -33,6 +33,7 @@ export const saveToEagle = async (input: {
   entriesTitle: string
   description: string
   publishedAt: string
+  feedUrl: string
 }) => {
   try {
     const res = await fetch("http://localhost:41596/api/item/addFromURLs", {
@@ -54,6 +55,7 @@ export const saveToEagle = async (input: {
         category: input.category,
         feedTitle: input.feedTitle,
         entriesTitle: input.entriesTitle,
+        feedUrl: input.feedUrl,
       }),
     })
     return await res.json()
@@ -209,8 +211,9 @@ export const useIntegrationActions = ({
           const response = await saveToEagle({
             url: populatedEntry.entries.url,
             mediaUrls: populatedEntry.entries.media.map((m) => m.url),
-            category: populatedEntry.subscriptions.category,
+            category: populatedEntry.subscriptions?.category || "",
             feedTitle: populatedEntry.feeds?.title || "",
+            feedUrl: populatedEntry.feeds?.url || "",
             entriesTitle: populatedEntry.entries.title || "",
             description: populatedEntry.entries.description || "",
             publishedAt: populatedEntry.entries.publishedAt || "",
